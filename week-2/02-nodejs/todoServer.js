@@ -39,11 +39,85 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+const express = require("express");
+const bodyParser = require("body-parser");
+const { v4: uuidv4 } = require("uuid");
+
+const app = express();
+
+app.use(bodyParser.json());
+const port = process.env.PORT || 3000;
+
+const todos = [];
+
+//DISPLAY TODOS
+app.get("/todos", (req, res) => {
+  res.status(200).json(todos);
+  console.log(todos);
+});
+
+//CREATE TODOS
+app.post("/todos", (req, res) => {
+  const { title, desc, completed } = req.body;
+  if (!title || !desc) {
+    return res
+      .status(400)
+      .json({ error: "Title and description are required." });
+  }
+  const newTodo = { id: uuidv4(), title, desc, completed: completed || false };
+  todos.push(newTodo);
+
+  res.status(201).json(newTodo);
+});
+
+//GET TODOS BY ID
+
+app.get("/todos/:id", (req, res) => {
+  const id = req.params.id;
+  const todo = todos.find((todo) => todo.id === id);
+  if (!todo) {
+    return res.status(404).send("no todo found with such id");
+  }
+  res.status(200).json(todo);
+});
+
+//UPDATE A TODO
+app.put("/todos/:id", (req, res) => {
+  const { title, desc, completed } = req.body;
+  const updateTodoId = req.params.id;
+
+  const todoIndex = todos.findIndex((todo) => todo.id === updateTodoId);
+
+  if (todoIndex === -1) {
+    return res.status(404).send("Todo not found");
+  }
+
+  todos[todoIndex] = {
+    id: updateTodoId,
+    title: title || todos[todoIndex].title,
+    desc: desc || todos[todoIndex].desc,
+    completed: completed !== undefined ? completed : todos[todoIndex].completed,
+  };
+
+  res.status(200).json(todos[todoIndex]);
+});
+
+//DELETE A TODO
+
+app.delete("/todos/:id", (req, res) => {
+  const id = req.params.id;
+  const deleteIndex = todos.findIndex((todo) => todo.id === id);
+
+  if (deleteIndex === -1) {
+    return res.status(400).send("no todo found");
+  }
+
+  todos.splice(deleteIndex, 1);
+  res.status(200).send("Deleted the Todo");
+});
+
+//START SERVER
+app.listen(port, () => {
+  console.log("listening on 3000");
+});
+module.exports = app;
